@@ -1,15 +1,10 @@
 import numpy as np
 import tensorflow as tf
-import pickle
 import os
+from sklearn.utils import shuffle
+from matplotlib import pyplot as plt
+from utensils import load_data, scale_back
 
-
-def load_data(f):
-    data = pickle.load(open(f, 'rb'))
-    train_x, train_y = data['train_data']
-    valid_x, valid_y = data['valid_data']
-    test_x, test_y = data['test_data']
-    return train_x, train_y, valid_x, valid_y, test_x, test_y
 
 
 class Classifier(tf.keras.layers.Layer):
@@ -72,7 +67,8 @@ class Model(tf.keras.Model):
 if __name__ == "__main__":
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     model_data_path = './model_data/model_data.pkl'
-    train_x, train_y, valid_x, valid_y, test_x, test_y = load_data(model_data_path)
+    data_train_x, data_train_y, valid_x, valid_y, test_x, test_y, min, max = load_data(model_data_path)
+    train_x, train_y = shuffle(data_train_x, data_train_y, random_state=6999)       ### Shuffle the training data
     
     print(train_x.shape, train_y.shape)
     print(valid_x.shape, valid_y.shape)
@@ -92,8 +88,8 @@ if __name__ == "__main__":
     
     input_dim = len(train_x[0][0])
     timestep = len(train_x[0])
-    rnn_dim = [50, 100, 150, 200]
-    hidden_dim = [30, 50, 100, 150]
+    rnn_dim = [100, 200]
+    hidden_dim = [100, 150]
     attention_dim = 32
     for i in rnn_dim:
         for j in hidden_dim:    
@@ -106,11 +102,32 @@ if __name__ == "__main__":
             ### LSTM+Attntion
             model = Model(rnn_dims=i, hidden_dims=j, attention_dim=attention_dim, drop_rate=0.2)
             model.compile(optimizer='Adam', loss = 'mse', metrics = [tf.keras.metrics.RootMeanSquaredError()])
-            model.fit(train_x, train_y, validation_data = (valid_x, valid_y), batch_size=32, epochs = 200, shuffle=True, callbacks=[model_checkpoint_callback], verbose = 2)
+            model.fit(train_x, train_y, validation_data = (valid_x, valid_y), batch_size=32, epochs = 200, shuffle=True, verbose = 2)
             model.summary()
             
             ### Evaluate using the best epoch
             model.load_weights(save_path)
             model.evaluate(test_x, test_y)
-        
+
+
+            
+            ### Plot
+            train = scale_back(model.predict(data_train_x), min, max)
+            valid = scale_back(model.predict(valid_x), min, max)
+            test = scale_back(model.predict(test_x), min, max)
+            predict = np.concatenate((train, valid), axis = 0)
+            predict = np.concatenate((predict, test), axis = 0)
+            
+            original_train = scale_back(data_train_y, min, max)
+            original_valid = scale_back(valid_y, min, max)
+            original_test = scale_back(test_y, min, max)
+            original = np.concatenate((original_train, original_valid), axis = 0)
+            original = np.concatenate((original, original_test), axis = 0)
+            
+            plt.plot(original)
+            plt.plot(predict)
+            plt.axvline(x = 790, color = 'black')
+            
+            plt.show()
+            
     

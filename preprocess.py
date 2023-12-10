@@ -9,6 +9,7 @@ from matplotlib import pyplot as plt
 def load_price_data(f):
     df = pd.read_csv(f)
     df = df[df["Date"]<"2023-01-01"]
+    min, max = df['Close'].min(), df['Close'].max()
     df['Close'] = MinMaxScaler().fit_transform(np.array(df['Close']).reshape(-1,1))
     df['Open'] = MinMaxScaler().fit_transform(np.array(df['Open']).reshape(-1,1))
     df['High'] = MinMaxScaler().fit_transform(np.array(df['High']).reshape(-1,1))
@@ -16,7 +17,7 @@ def load_price_data(f):
     #df['Volume'] = MinMaxScaler().fit_transform(np.array(df['Volume']).reshape(-1,1))
     data = np.array(df[['Close', 'Open', 'High', 'Low']])
     
-    return data
+    return data, min, max
 
 
 def build_dataset(data, sequence_length = 21):
@@ -46,9 +47,9 @@ def split_data(x, y):
 
 if __name__ == "__main__":
     ### Load Dataset, and do normalizations
-    data = load_price_data("./data/MSFT.csv")
+    data, min, max = load_price_data("./data/MSFT.csv")
     print(data.shape)
-    
+    print(f"The minimum price is {min} and the maximum price is {max}")
 
     ### Build Dataset
     data_x, data_y = build_dataset(data)
@@ -66,6 +67,8 @@ if __name__ == "__main__":
     pickle.dump({
         'train_data': train_data,
         'valid_data': valid_data,
-        'test_data': test_data
+        'test_data': test_data,
+        'min': min,
+        'max': max
     }, open('./model_data/model_data.pkl', 'wb'))
     
