@@ -1,1 +1,0 @@
-This is the file keeps model weight and data preprocessed
