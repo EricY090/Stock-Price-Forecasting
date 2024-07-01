@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 ### Normalization?
 def load_price_data(f):
     df = pd.read_csv(f)
-    df = df[df["Date"]<"2023-01-01"]
+    #df = df[df["Date"]<"2023-01-01"]
     min, max = df['Close'].min(), df['Close'].max()
     df['Close'] = MinMaxScaler().fit_transform(np.array(df['Close']).reshape(-1,1))
     df['Open'] = MinMaxScaler().fit_transform(np.array(df['Open']).reshape(-1,1))
